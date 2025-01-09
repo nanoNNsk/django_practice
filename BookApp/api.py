@@ -4,6 +4,7 @@ from .models import BookModel
 from rest_framework import serializers
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import PageNumberPagination, LimitOffsetPagination, CursorPagination
 
 
 class BookSerializer(serializers.ModelSerializer):
@@ -57,16 +58,23 @@ class BookSerializer(serializers.ModelSerializer):
 #         'message' : 'book deleted'
 #     })
 
+class CustomPagination(CursorPagination):
+    page_size = 2
+    ordering = 'price'
+
+
 class Bookviewset(ModelViewSet):
     queryset = BookModel.objects.all()
     serializer_class = BookSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = CustomPagination
 
     def list(self,request):
         user = request.user
         books = BookModel.objects.filter(author = user)
-        serializers = self.get_serializer(books,many = True)
-        return Response(serializers.data)
+        page = self.paginate_queryset(books)
+        serializers = self.get_serializer(page,many = True)
+        return self.get_paginated_response(serializers.data)
     
     def create(self,request):
         # name,price
